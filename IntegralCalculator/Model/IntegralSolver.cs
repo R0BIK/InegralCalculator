@@ -1,25 +1,34 @@
 using System.Text.RegularExpressions;
+using NCalc;
 
 namespace IntegralCalculator.Model;
 
 public class IntegralSolver
 {
-    public static void SolveByRectangles()
+    public static string SolveByRectangles(Expression func, Expression upperB, Expression lowerB, string argument)
     {
-        double upperBound = Math.PI/4;
-        double lowerBound = 0;
-        int precision = 4;
+        double upperBound = Convert.ToDouble(upperB.Evaluate());
+        double lowerBound = Convert.ToDouble(lowerB.Evaluate());
+        int precision = 10;
         double temp = lowerBound;
         double result = 0;
         List<double> arguments = new List<double>();
         
         double h = (upperBound - lowerBound) / precision;
 
-        for (int i = 0; i < precision; ++i)
+        try
         {
-            double arg = temp + h / 2;
-            arguments.Add(Math.Sin(arg)/(Math.Pow(arg, 2) - 1));
-            temp += h;
+            for (int i = 0; i < precision; ++i)
+            {
+                double arg = temp + h / 2;
+                func.Parameters[argument] = arg;
+                arguments.Add(Convert.ToDouble(func.Evaluate()));
+                temp += h;
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
         }
         
         for (int i = 0; i < precision; i++)
@@ -29,24 +38,33 @@ public class IntegralSolver
 
         result *= h;
         Console.WriteLine(result);
+        return result.ToString();
     }
     
-    public static void SolveBySipmpson()
+    public static string SolveBySipmpson(Expression func, Expression upperB, Expression lowerB, string argument)
     {
-        double upperBound = 2;
-        double lowerBound = 1.2;
-        int precision = 8;
+        double upperBound = Convert.ToDouble(upperB.Evaluate());
+        double lowerBound = Convert.ToDouble(lowerB.Evaluate());
+        int precision = 10;
         double temp = lowerBound;
         double paired = 0;
         double unpaired = 0;
         List<double> arguments = new List<double>();
         
         double h = (upperBound - lowerBound) / precision;
-
-        for (int i = 0; i <= precision; ++i)
+        
+        try
         {
-            arguments.Add(double.Sqrt(1 + 2 * double.Pow(temp, 2) - double.Pow(temp, 3)));
-            temp += h;
+            for (int i = 0; i <= precision; ++i)
+            {
+                func.Parameters[argument] = temp;
+                arguments.Add(Convert.ToDouble(func.Evaluate()));
+                temp += h;
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
         }
 
         double result = arguments[0] + arguments[precision];
@@ -63,22 +81,31 @@ public class IntegralSolver
 
         result = (h / 3) * (result + 2 * paired + 4 * unpaired);
         Console.WriteLine(result);
+        return result.ToString();
     }
     
-    public static void SolveByTrapezium()
+    public static string SolveByTrapezium(Expression func, Expression upperB, Expression lowerB, string argument)
     {
-        double upperBound = 5;
-        double lowerBound = 2;
-        int precision = 6;
+        double upperBound = Convert.ToDouble(upperB.Evaluate());
+        double lowerBound = Convert.ToDouble(lowerB.Evaluate());
+        int precision = 10;
         double temp = lowerBound;
         List<double> arguments = new List<double>();
 
         double h = (upperBound - lowerBound) / precision;
 
-        for (int i = 0; i <= precision; ++i)
-        { 
-            arguments.Add(1/Math.Log(temp));
-            temp += h;
+        try
+        {
+            for (int i = 0; i <= precision; ++i)
+            { 
+                func.Parameters[argument] = temp;
+                arguments.Add(Convert.ToDouble(func.Evaluate()));
+                temp += h;
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
         }
 
         double result = (arguments[0] + arguments[precision]) / 2;
@@ -91,5 +118,6 @@ public class IntegralSolver
         result *= h;
         
         Console.WriteLine(result);
+        return result.ToString();
     }
 }
