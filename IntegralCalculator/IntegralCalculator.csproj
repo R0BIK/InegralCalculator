@@ -16,6 +16,7 @@
       <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
       <PackageReference Include="NCalcSync" Version="4.1.0" />
       <PackageReference Include="OxyPlot.Core" Version="2.1.2" />
+      <PackageReference Include="PCRE.NET" Version="1.0.0" />
       <PackageReference Include="WpfMath" Version="2.1.0" />
     </ItemGroup>
 
