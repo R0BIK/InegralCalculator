@@ -234,10 +234,10 @@ public partial class MainViewModel : ObservableObject
     {
         foreach (var item in Dictionary.Operations)
         {
-            Regex regex = new Regex(item.Key);
+            PcreRegex regex = new PcreRegex(item.Key);
             while (regex.IsMatch(func))
             {
-                func = Regex.Replace(func, item.Key, item.Value);
+                func = PcreRegex.Replace(func, item.Key, item.Value);
                 Console.WriteLine(func);
             }
         }

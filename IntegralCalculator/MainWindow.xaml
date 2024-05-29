@@ -197,12 +197,15 @@
                            FontSize="18"
                            FontWeight="Bold"/>
                 <TextBlock Text="{Binding Difficulties[0]}"
+                           HorizontalAlignment="Center"
                            Margin="0, 0, 0, 5"
                            FontSize="14"/>
                 <TextBlock Text="{Binding Difficulties[1]}"
+                           HorizontalAlignment="Center"
                            Margin="0, 0, 0, 5"
                            FontSize="14"/>
                 <TextBlock Text="{Binding Difficulties[2]}"
+                           HorizontalAlignment="Center"
                            Margin="0, 0, 0, 5"
                            FontSize="14"/>
             </StackPanel>
