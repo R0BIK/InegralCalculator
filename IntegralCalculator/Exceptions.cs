@@ -11,17 +11,6 @@ public class FunctionException : Exception
         : base(message, innerException) { }
 }
 
-public class BoundException : Exception
-{
-    public BoundException() { }
-    
-    public BoundException(string? message)
-        : base(message) { }
-    
-    public BoundException(string? message, Exception? innerException)
-        : base(message, innerException) { }
-}
-
 public class NanException : Exception
 {
     public NanException() { }

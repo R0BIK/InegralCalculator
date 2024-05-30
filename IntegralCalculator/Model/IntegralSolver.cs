@@ -4,26 +4,22 @@ namespace IntegralCalculator.Model;
 
 public static class IntegralSolver
 {
-    private static ulong Difficulty;
+    public static ulong Difficulty = 0;
 
-    public static ulong GetDifficulty()
-    {
-        ulong temp = Difficulty;
-        Difficulty = 0;
-        return temp;
-    }
+    public static int Precision = 1000;
+    
     public static double SolveByRectangles(Expression func, double upperBound, double lowerBound, string argument)
     {
-        int precision = 1000;
+        Difficulty = 0;
         double temp = lowerBound;
         double result = 0;
         List<double> arguments = new List<double>();
         
-        double h = (upperBound - lowerBound) / precision;
+        double h = (upperBound - lowerBound) / Precision;
 
         try
         {
-            for (int i = 0; i < precision; ++i)
+            for (int i = 0; i < Precision; ++i)
             {
                 Difficulty++;
                 double arg = temp + h / 2;
@@ -32,7 +28,7 @@ public static class IntegralSolver
                 temp += h;
             }
             
-            for (int i = 0; i < precision; i++)
+            for (int i = 0; i < Precision; i++)
             {
                 Difficulty++;
                 result += arguments[i];
@@ -53,18 +49,18 @@ public static class IntegralSolver
     
     public static double SolveBySipmpson(Expression func, double upperBound, double lowerBound, string argument)
     {
-        int precision = 1000;
+        Difficulty = 0;
         double temp = lowerBound;
         double paired = 0;
         double unpaired = 0;
         double result;
         List<double> arguments = new List<double>();
         
-        double h = (upperBound - lowerBound) / precision;
+        double h = (upperBound - lowerBound) / Precision;
         
         try
         {
-            for (int i = 0; i <= precision; ++i)
+            for (int i = 0; i <= Precision; ++i)
             {
                 Difficulty++;
                 func.Parameters[argument] = temp;
@@ -72,9 +68,9 @@ public static class IntegralSolver
                 temp += h;
             }
             
-            result = arguments[0] + arguments[precision];
+            result = arguments[0] + arguments[Precision];
         
-            for (int i = 1; i < precision; i++)
+            for (int i = 1; i < Precision; i++)
             {
                 Difficulty++;
                 if (i % 2 == 0)
@@ -100,16 +96,16 @@ public static class IntegralSolver
     
     public static double SolveByTrapezium(Expression func, double upperBound, double lowerBound, string argument)
     {
-        int precision = 1000;
+        Difficulty = 0;
         double temp = lowerBound;
         double result = 0;
         List<double> arguments = new List<double>();
 
-        double h = (upperBound - lowerBound) / precision;
+        double h = (upperBound - lowerBound) / Precision;
 
         try
         {
-            for (int i = 0; i <= precision; ++i)
+            for (int i = 0; i <= Precision; ++i)
             { 
                 Difficulty++;
                 func.Parameters[argument] = temp;
@@ -117,9 +113,9 @@ public static class IntegralSolver
                 temp += h;
             }
             
-            result = (arguments[0] + arguments[precision]) / 2;
+            result = (arguments[0] + arguments[Precision]) / 2;
 
-            for (int i = 1; i < precision; ++i)
+            for (int i = 1; i < Precision; ++i)
             {
                 Difficulty++;
                 result += arguments[i];

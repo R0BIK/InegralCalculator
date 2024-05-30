@@ -7,11 +7,13 @@ using CommunityToolkit.Mvvm.Input;
 using IntegralCalculator.Model;
 using OxyPlot;
 using OxyPlot.Axes;
+using OxyPlot.Legends;
 using OxyPlot.Series;
 using OxyPlot.Wpf;
 using PCRE;
 using WpfMath.Controls;
 using Expression = NCalc.Expression;
+using Regex = IntegralCalculator.Model.Regex;
 
 namespace IntegralCalculator.ViewModel;
 
@@ -20,6 +22,12 @@ public partial class MainViewModel : ObservableObject
     private double _upperB = 0;
     private double _lowerB = 0;
     private Expression _mathExpression = new Expression("");
+    
+    [ObservableProperty]
+    private int _graphPoints = 1000;
+    
+    [ObservableProperty]
+    private int _precision = IntegralSolver.Precision;
     
     [ObservableProperty]
     private string _function = "";
@@ -38,15 +46,12 @@ public partial class MainViewModel : ObservableObject
     
     [ObservableProperty]
     private string _messageColor = "";
-
-    // [ObservableProperty]
-    // private List<string> _results;
     
     public ObservableCollection<string> Results { get; set; }
     
     public ObservableCollection<ulong> Difficulties { get; set; }
     
-    public PlotModel PlotModel1 { get; set; }
+    public PlotModel? PlotModel1 { get; set; }
 
     public ObservableCollection<FormulaControl> Options { get; private set; } = null!;
     
@@ -56,8 +61,9 @@ public partial class MainViewModel : ObservableObject
     
     public MainViewModel()
     {
-        Results = ["", "", ""];
         Difficulties = new ObservableCollection<ulong>();
+        Results = ["", "", ""];
+        InitializeGraph();
         InitComboBox();
         ResolveCommand = new RelayCommand(CheckInput);
     }
@@ -131,7 +137,10 @@ public partial class MainViewModel : ObservableObject
         }
         else
         {
+            IntegralSolver.Precision = Precision;
             ConvertInputInMath();
+            CallSolvers();
+            ValidateResult();
             string markdownFunction = ConvertFunctionMarkdown(Function);
             string upperB = ConvertFunctionMarkdown(UpperBound);
             string lowerB = ConvertFunctionMarkdown(LowerBound);
@@ -185,15 +194,12 @@ public partial class MainViewModel : ObservableObject
             Results[1] = "Cannot convert bounds";
             Results[2] = "Cannot convert bounds";
             ValidateResult();
-            return;
         }
-        
-        CallSolvers();
     }
 
     private void CallSolvers()
     {
-        Difficulties.Clear();   
+        Difficulties.Clear();
 
         try
         {
@@ -203,7 +209,7 @@ public partial class MainViewModel : ObservableObject
         {
             Results[0] = e.Message;
         }
-        Difficulties.Add(IntegralSolver.GetDifficulty());
+        Difficulties.Add(IntegralSolver.Difficulty);
         try
         {
             Results[1] = IntegralSolver.SolveByRectangles(_mathExpression, _upperB, _lowerB, SelectedItem.Formula).ToString();
@@ -212,7 +218,7 @@ public partial class MainViewModel : ObservableObject
         {
             Results[1] = e.Message;
         }
-        Difficulties.Add(IntegralSolver.GetDifficulty());
+        Difficulties.Add(IntegralSolver.Difficulty);
         try
         {
             Results[2] = IntegralSolver.SolveByTrapezium(_mathExpression, _upperB, _lowerB, SelectedItem.Formula).ToString();
@@ -221,10 +227,7 @@ public partial class MainViewModel : ObservableObject
         {
             Results[2] = e.Message;
         }
-        Difficulties.Add(IntegralSolver.GetDifficulty());
-        
-        ValidateResult();
-        // DrawGraphic(function, upperBound, lowerBound);
+        Difficulties.Add(IntegralSolver.Difficulty);
     }
 
     private void ValidateResult()
@@ -255,39 +258,48 @@ public partial class MainViewModel : ObservableObject
 
         if (mathErrors == 3)
         {
-            Message = "Функцію введено не правильно!";
+            Message = "Функцію введено не правильно! ";
             MessageColor = "#eb4034";
         }
         else if (mathErrors > 0)
         {
-            Message += "Деякі методи не змогли зчитати функцію!";
+            Message += "Деякі методи не змогли зчитати функцію! ";
             MessageColor = "#cfa80e";
         }
         else if (boundsErrors > 0)
         {
-            Message = "Межі інтегралу введено не правильно!";
+            Message = "Межі інтегралу введено не правильно! ";
             MessageColor = "#eb4034";
         }
         else if (nans == 3)
         {
-            Message = "Інтеграл не можливо розв'язати нашими методами!";
+            Message = "Інтеграл не можливо розв'язати нашими методами! ";
             MessageColor = "#eb4034";
         }
         else if (nans > 0)
         {
-            Message += "Не всі методи мають розв'язок!";
+            Message += "Не всі методи мають розв'язок! ";
             MessageColor = "#cfa80e";
         }
         else
         {
-            Message = "Успішно!";
+            Message = "Успішно! ";
             MessageColor = "#00bd10";
+        }
+
+        try
+        {
+            DrawGraph();
+        }
+        catch (Exception e)
+        {
+            Message += "Помилка в побудові графіку ";
         }
     }
 
     private string ConvertFunctionMath(string func)
     {
-        foreach (var item in Dictionary.Operations)
+        foreach (var item in Regex.Operations)
         {
             PcreRegex regex = new PcreRegex(item.Key);
             while (regex.IsMatch(func))
@@ -302,7 +314,7 @@ public partial class MainViewModel : ObservableObject
     
     private string ConvertFunctionMarkdown(string func)
     {
-        foreach (var item in Dictionary.Markdowns)
+        foreach (var item in Regex.Markdowns)
         {
             PcreRegex regex = new PcreRegex(item.Key);
             while (regex.IsMatch(func))
@@ -315,52 +327,109 @@ public partial class MainViewModel : ObservableObject
         return func;
     }
 
-    void DrawGraphic(Expression functiion, double upperBound, double lowerBound)
+    private bool IsNumber(string text)
     {
-        PlotModel1 = new PlotModel { Title = "Графік" };
+        return Char.IsDigit(text[text.Length - 1]);
+    }
+    
+    private void InitializeGraph()
+    {
+        PlotModel1 = new PlotModel { Title = "Графіки інтегралу" };
         PlotModel1.Background = OxyColors.White;
+        
         var xAxis = new LinearAxis
         {
             Position = AxisPosition.Bottom,
-            Title = "X",
-            Minimum = 0,
-            Maximum = 1
+            AxislineStyle = LineStyle.Solid,
+            AxislineColor = OxyColors.Black,
+            PositionAtZeroCrossing = true,
+            MajorGridlineStyle = LineStyle.Solid,
+            MinorGridlineStyle = LineStyle.Dot,
+            MajorGridlineColor = OxyColors.LightGray,
+            MinorGridlineColor = OxyColors.LightGray,
+            Title = "Вісь Х",
         };
 
         var yAxis = new LinearAxis
         {
             Position = AxisPosition.Left,
-            Title = "Интеграл f(x)",
-            Minimum = 0,
-            Maximum = 0.5
+            AxislineStyle = LineStyle.Solid,
+            AxislineColor = OxyColors.Black,
+            PositionAtZeroCrossing = true,
+            MajorGridlineStyle = LineStyle.Solid,
+            MinorGridlineStyle = LineStyle.Dot,
+            MajorGridlineColor = OxyColors.LightGray,
+            MinorGridlineColor = OxyColors.LightGray,
+            Title = "Вісь Y",
         };
-
-        // Добавляем оси в модель
+        
         PlotModel1.Axes.Add(xAxis);
         PlotModel1.Axes.Add(yAxis);
+    }
+    
+    private void DrawGraph()
+    {
+        List<OxyColor> colors = [OxyColors.Brown, OxyColors.Coral, OxyColors.DeepSkyBlue];
+        InitializeGraph();
+
+        for (int g = 0; g < Results.Count; ++g)
+        {
+            if (IsNumber(Results[g]))
+            {
+                string titleName = "";
+                if (g == 0)
+                    titleName = "Метод Сімпсона";
+                else if (g == 1)
+                    titleName = "Метод прямокутників";
+                else if (g == 2)
+                    titleName = "Метод трапецій";
+                
+                var lineSeries = new LineSeries
+                {
+                    Title = titleName,
+                    Color = colors[g],
+                    MarkerType = MarkerType.None, 
+                    MarkerSize = 3,
+                    MarkerStroke = OxyColors.Red,
+                    MarkerFill = OxyColors.Red
+                };
         
-        var lineSeries = new LineSeries
-        {
-            Title = "Интеграл",
-            MarkerType = MarkerType.Circle, // Добавим маркеры для визуализации точек
-            MarkerSize = 3,
-            Color = OxyColors.Blue,
-            MarkerStroke = OxyColors.Red,
-            MarkerFill = OxyColors.Red
-        };
+                List<double> xValues = new List<double>();
+                List<double> yValues = new List<double>();
+                double step = (_upperB - _lowerB) / GraphPoints;
+                for (int i = 0; i < GraphPoints; ++i)
+                {
+                    xValues.Add(_lowerB + step * i);
+                    switch (g)
+                    {
+                        case 0:
+                            yValues.Add(IntegralSolver.SolveBySipmpson(_mathExpression, xValues[i], _lowerB,
+                                SelectedItem.Formula));
+                            break;
+                        case 1:
+                            yValues.Add(IntegralSolver.SolveByRectangles(_mathExpression, xValues[i], _lowerB,
+                                SelectedItem.Formula));
+                            break;
+                        case 2:
+                            yValues.Add(IntegralSolver.SolveByTrapezium(_mathExpression, xValues[i], _lowerB,
+                                SelectedItem.Formula));
+                            break;
+                        default:
+                            yValues.Add(IntegralSolver.SolveBySipmpson(_mathExpression, xValues[i], _lowerB,
+                                SelectedItem.Formula));
+                            break;
+                    }
 
-        List<double> xValues = new List<double>();
-        List<double> yValues = new List<double>();
-        int n = 100;
-        double step = (upperBound - lowerBound) / n;
-
-        for (int i = 0; i < n; ++i)
-        {
-            xValues.Add(lowerBound + step * i);
-            yValues.Add(IntegralSolver.SolveBySipmpson(functiion, xValues[i], lowerBound, SelectedItem.Formula));
-            lineSeries.Points.Add(new DataPoint(xValues[i], yValues[i]));
+                    lineSeries.Points.Add(new DataPoint(xValues[i], yValues[i]));
+                }
+        
+                PlotModel1.Series.Add(lineSeries);
+                PlotModel1.Legends.Add(new Legend() { 
+                    LegendPosition = LegendPosition.RightBottom,
+                    LegendPlacement = LegendPlacement.Outside,
+                    LegendOrientation = LegendOrientation.Horizontal,
+                });
+            }
         }
-        
-        PlotModel1.Series.Add(lineSeries);
     }
 }

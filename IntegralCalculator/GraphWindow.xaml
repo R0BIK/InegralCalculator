@@ -7,7 +7,7 @@
         xmlns:oxy="http://oxyplot.org/wpf"
         xmlns:viewModel="clr-namespace:IntegralCalculator.ViewModel"
         mc:Ignorable="d"
-        Title="Graph" Height="450" Width="800">
+        Title="Graph" Height="450" Width="800" MinHeight="300" MinWidth="450">
     <Window.DataContext>
         <viewModel:MainViewModel/>
     </Window.DataContext>

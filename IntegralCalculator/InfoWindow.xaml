@@ -1,0 +1,60 @@
+<Window x:Class="IntegralCalculator.InfoWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:controls="clr-namespace:WpfMath.Controls;assembly=WpfMath"
+        xmlns:viewModel="clr-namespace:IntegralCalculator.ViewModel"
+        mc:Ignorable="d"
+        Title="InfoWindow" MinHeight="500" MinWidth="700" Height="500" Width="700">
+    <Window.DataContext>
+        <viewModel:MainViewModel/>
+    </Window.DataContext>
+    <Grid Margin="15">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        
+        <Grid.RowDefinitions>
+            <RowDefinition Height="70"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        
+        <TextBlock Grid.Row="0"
+                   Grid.Column="0"
+                   Grid.ColumnSpan="2"
+                   HorizontalAlignment="Center"
+                   Text="Список доступних функцій"
+                   FontSize="30"
+                   FontWeight="Bold"/>
+        
+        <StackPanel Grid.Column="0"
+                    Grid.Row="1"
+                    Orientation="Vertical">
+            <controls:FormulaControl Formula="+-" Scale="25" HorizontalAlignment="Center" Margin="5"/>
+            <controls:FormulaControl Formula="pi = \pi" Scale="25" HorizontalAlignment="Center" Margin="5"/>
+            <controls:FormulaControl Formula="\sin(x)" Scale="25" HorizontalAlignment="Center" Margin="5"/>
+            <controls:FormulaControl Formula="\ctg(x)" Scale="25" HorizontalAlignment="Center" Margin="5"/>
+            <controls:FormulaControl Formula="\arcsin(x)" Scale="25" HorizontalAlignment="Center" Margin="5"/>
+            <controls:FormulaControl Formula="\arctg(x)" Scale="25" HorizontalAlignment="Center" Margin="5"/>
+            <controls:FormulaControl Formula="sqrtn(x) = \sqrt[n]{x}" Scale="25" HorizontalAlignment="Center" Margin="5"/>
+            <controls:FormulaControl Formula="\lg(x) = \log_{10}{x}" Scale="25" HorizontalAlignment="Center" Margin="5"/>
+            <controls:FormulaControl Formula="pow(a, b) = {a}^{b}" Scale="25" HorizontalAlignment="Center" Margin="5"/>
+        </StackPanel>
+        
+        <StackPanel Grid.Column="1"
+                    Grid.Row="1"
+                    Orientation="Vertical">
+            <controls:FormulaControl Formula="*/" Scale="25" HorizontalAlignment="Center" Margin="5"/>
+            <controls:FormulaControl Formula="e" Scale="25" HorizontalAlignment="Center" Margin="5"/>
+            <controls:FormulaControl Formula="\cos(x)" Scale="25" HorizontalAlignment="Center" Margin="5"/>
+            <controls:FormulaControl Formula="\tg(x)" Scale="25" HorizontalAlignment="Center" Margin="5"/>
+            <controls:FormulaControl Formula="\arccos(x)" Scale="25" HorizontalAlignment="Center" Margin="5"/>
+            <controls:FormulaControl Formula="arcctg(x)" Scale="25" HorizontalAlignment="Center" Margin="5"/>
+            <controls:FormulaControl Formula="sqrt(x) = \sqrt{x}" Scale="25" HorizontalAlignment="Center" Margin="5"/>
+            <controls:FormulaControl Formula="\ln(x) = \log_{e}{x}" Scale="25" HorizontalAlignment="Center" Margin="5"/>
+            <controls:FormulaControl Formula="log(a, b) = \log_{a}{b}" Scale="25" HorizontalAlignment="Center" Margin="5"/>
+        </StackPanel>
+    </Grid>
+</Window>

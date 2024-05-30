@@ -28,9 +28,20 @@ public partial class MainWindow : Window
         {
             ShowInTaskbar = false,
             Owner = this,
+            DataContext = this.DataContext,
         };
         
         graph.Show();
-
+    }
+    
+    private void ShowInfo(object sender, RoutedEventArgs e)
+    {
+        Window info = new InfoWindow()
+        {
+            ShowInTaskbar = false,
+            Owner = this,
+        };
+        
+        info.Show();
     }
 }

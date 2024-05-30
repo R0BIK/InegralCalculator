@@ -1,6 +1,6 @@
 namespace IntegralCalculator.Model;
 
-public static class Dictionary
+public static class Regex
 {
     // public static readonly Dictionary<string, string> Operations = new Dictionary<string, string>()
     // {
@@ -45,7 +45,8 @@ public static class Dictionary
     
     public static readonly Dictionary<string, string> Markdowns = new Dictionary<string, string>()
     {
-        { @"((sin|cos|tg|ctg|lg|log|ln|sqrt|sqrt\d+|pow|arcsin|arccos|arcctg|arctg)\(.+\)|\b[a-z])(\d+)", "$3$1" },
+        { @"((sin|cos|tg|ctg|lg|log|ln|sqrt|sqrt\d+|pow|arcsin|arccos|arcctg|arctg)\(.+\)|\b[a-z])(\d+)", "$3*$1" },
+        { @"(\d+)((sin|cos|tg|ctg|lg|log|ln|sqrt|sqrt\d+|pow|arcsin|arccos|arcctg|arctg)\(.+\)|[a-z]\b)", "$1 * $2" },
         { @"(\(.+\)|\w+\(.+\)|\w+)\/(\(.+\)|\w+\(.+\)|\w+)", @"\frac{$1}{$2}"},
         { @"\bpow\s*(\(((?>[^)(,]+|(?1))*)(?>\s*,\s*((?>[^)(,]+|(?1))*))*\))", "{$2}^{$3}"},
         { @"\bsqrt\s*(\(((?:[^)(]+|(?1))*+)\))", @"\sqrt{$2}" },
@@ -62,7 +63,7 @@ public static class Dictionary
         { @"\b(?<!\\)arcsin\s*(\(((?:[^)(]+|(?1))*+)\))", @"\arcsin($2)" },
         { @"\b(?<!\\)arccos\s*(\(((?:[^)(]+|(?1))*+)\))", @"\arccos($2)" },
         { @"\b(?<!\\)arctg\s*(\(((?:[^)(]+|(?1))*+)\))", @"\arctg($2)" },
-        { @"\b(?<!\\)arcctg\s*(\(((?:[^)(]+|(?1))*+)\))", @"\arctg($2)" },
+        { @"\b(?<!\\)arcctg\s*(\(((?:[^)(]+|(?1))*+)\))", @"arcctg($2)" },
         { @"\b(?<!\\)log\s*(\(((?>[^)(,]+|(?1))*)(?>\s*,\s*((?>[^)(,]+|(?1))*))*\))", @"\log_{$2}{$3}" }
     };
     
