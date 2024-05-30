@@ -1,6 +1,6 @@
 namespace IntegralCalculator.Model;
 
-public class Dictionary
+public static class Dictionary
 {
     // public static readonly Dictionary<string, string> Operations = new Dictionary<string, string>()
     // {

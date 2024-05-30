@@ -5,8 +5,10 @@ using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using IntegralCalculator.Model;
-using Microsoft.VisualBasic;
-using NCalc;
+using OxyPlot;
+using OxyPlot.Axes;
+using OxyPlot.Series;
+using OxyPlot.Wpf;
 using PCRE;
 using WpfMath.Controls;
 using Expression = NCalc.Expression;
@@ -15,6 +17,10 @@ namespace IntegralCalculator.ViewModel;
 
 public partial class MainViewModel : ObservableObject
 {
+    private double _upperB = 0;
+    private double _lowerB = 0;
+    private Expression _mathExpression = new Expression("");
+    
     [ObservableProperty]
     private string _function = "";
     
@@ -33,61 +39,32 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private string _messageColor = "";
 
-    // private string _mathFunction = "";
-    //
-    // private string _markdownFunction = "";
+    // [ObservableProperty]
+    // private List<string> _results;
+    
+    public ObservableCollection<string> Results { get; set; }
+    
+    public ObservableCollection<ulong> Difficulties { get; set; }
+    
+    public PlotModel PlotModel1 { get; set; }
 
-    [ObservableProperty]
-    private List<string> _results;
+    public ObservableCollection<FormulaControl> Options { get; private set; } = null!;
     
-    [ObservableProperty]
-    private List<ulong> _difficulties;
-    public ObservableCollection<FormulaControl> Options { get; set; }
-    
-    public FormulaControl SelectedItem { get; set; }
+    public FormulaControl SelectedItem { get; set; } = null!;
     
     public ICommand ResolveCommand { get; set; }
     
     public MainViewModel()
     {
+        Results = ["", "", ""];
+        Difficulties = new ObservableCollection<ulong>();
         InitComboBox();
-        ResolveCommand = new RelayCommand(() =>
-        {
-            if (Function == "")
-            {
-                Message = "Введіть функцію інтегралу в текстовому полі!";
-                MessageColor = "#eb4034";
-            }
-            else if (UpperBound == "")
-            {
-                Message = "Введіть верхню межу інтегралу в текстовому полі!";
-                MessageColor = "#eb4034";
-                string markdownFunction = ConvertFunctionMarkdown(Function);
-                ShowIntegral = @"\int" + "{" + $"{markdownFunction}" + @"\, dx}";
-            }
-            else if (LowerBound == "")
-            {
-                Message = "Введіть нижню межу інтегралу в текстовому полі!";
-                MessageColor = "#eb4034";
-                string markdownFunction = ConvertFunctionMarkdown(Function);
-                ShowIntegral = @"\int" + "{" + $"{markdownFunction}" + @"\, dx}";
-            }
-            else
-            {
-                SolveIntegral();
-                string markdownFunction = ConvertFunctionMarkdown(Function);
-                string upperB = ConvertFunctionMarkdown(UpperBound);
-                string lowerB = ConvertFunctionMarkdown(LowerBound);
-                ShowIntegral = @"\int_{" + $"{lowerB}" + @"}^{" + $"{upperB}" + "}{" + $"{markdownFunction}" + @"\, dx}";
-                Console.WriteLine(markdownFunction);
-                Console.WriteLine(@"\int_{" + $"{lowerB}" + @"}^{" + $"{upperB}" + "}{" + $"{markdownFunction}" + @"\, dx} =");
-            }
-        });
+        ResolveCommand = new RelayCommand(CheckInput);
     }
 
-    void InitComboBox()
+    private void InitComboBox()
     {
-        List<string> avaliableArg = new List<string>
+        var availableArguments = new List<string>
         {
             "x",
             "a",
@@ -116,83 +93,169 @@ public partial class MainViewModel : ObservableObject
             "y",
             "z"
         };
+        
         Options = new ObservableCollection<FormulaControl>();
         for (int i = 0; i < 26; ++i)
         {
-            FormulaControl formulaControl = new FormulaControl();
-            formulaControl.Formula = avaliableArg[i];
-            formulaControl.Scale = 26;
+            FormulaControl formulaControl = new FormulaControl
+            {
+                Formula = availableArguments[i],
+                Scale = 26
+            };
             Options.Add(formulaControl);
         }
         
         SelectedItem = Options[0];
     }
 
-    void SolveIntegral()
+    private void CheckInput()
+    {
+        if (Function == "")
+        {
+            Message = "Введіть функцію інтегралу в текстовому полі!";
+            MessageColor = "#eb4034";
+        }
+        else if (UpperBound == "")
+        {
+            Message = "Введіть верхню межу інтегралу в текстовому полі!";
+            MessageColor = "#eb4034";
+            string markdownFunction = ConvertFunctionMarkdown(Function);
+            ShowIntegral = @"\int" + "{" + $"{markdownFunction}" + @"\, d" + $"{SelectedItem.Formula}" + "}";
+        }
+        else if (LowerBound == "")
+        {
+            Message = "Введіть нижню межу інтегралу в текстовому полі!";
+            MessageColor = "#eb4034";
+            string markdownFunction = ConvertFunctionMarkdown(Function);
+            ShowIntegral = @"\int" + "{" + $"{markdownFunction}" + @"\, d" + $"{SelectedItem.Formula}" + "}";
+        }
+        else
+        {
+            ConvertInputInMath();
+            string markdownFunction = ConvertFunctionMarkdown(Function);
+            string upperB = ConvertFunctionMarkdown(UpperBound);
+            string lowerB = ConvertFunctionMarkdown(LowerBound);
+            ShowIntegral = @"\int_{" + $"{lowerB}" + @"}^{" + $"{upperB}" + "}{" + $"{markdownFunction}" + @"\, d" + $"{SelectedItem.Formula}" + "}";
+            Console.WriteLine(markdownFunction);
+            Console.WriteLine(@"\int_{" + $"{lowerB}" + @"}^{" + $"{upperB}" + "}{" + $"{markdownFunction}" + @"\, d" + $"{SelectedItem.Formula}" + "}");
+        }
+    }
+
+    private void ConvertInputInMath()
     {
         string mathFunction = ConvertFunctionMath(Function);
         string upperB = ConvertFunctionMath(UpperBound);
         string lowerB = ConvertFunctionMath(LowerBound);
         
-        Expression function = new Expression(mathFunction);
-        function.Parameters["PI"] = Math.PI;
-        function.Parameters["E"] = Math.E;
-
-        Expression upper = new Expression(upperB);
-        upper.Parameters["PI"] = Math.PI;
-        upper.Parameters["E"] = Math.E;
-        
-        Expression lower = new Expression(lowerB);
-        lower.Parameters["PI"] = Math.PI;
-        lower.Parameters["E"] = Math.E;
-        
-        Results = new List<string>
+        _mathExpression = new Expression(mathFunction)
         {
-            "",
-            "",
-            ""
+            Parameters =
+            {
+                ["PI"] = Math.PI,
+                ["E"] = Math.E
+            }
+        };
+
+        Expression upper = new Expression(upperB)
+        {
+            Parameters =
+            {
+                ["PI"] = Math.PI,
+                ["E"] = Math.E
+            }
+        };
+
+        Expression lower = new Expression(lowerB)
+        {
+            Parameters =
+            {
+                ["PI"] = Math.PI,
+                ["E"] = Math.E
+            }
         };
         
-        List<string> checkResult = new List<string>();
-        List<ulong> difficulty = new List<ulong>();
+        try
+        {
+            _upperB = Convert.ToDouble(upper.Evaluate());
+            _lowerB = Convert.ToDouble(lower.Evaluate());
+        }
+        catch (Exception e)
+        {
+            Results[0] = "Cannot convert bounds";
+            Results[1] = "Cannot convert bounds";
+            Results[2] = "Cannot convert bounds";
+            ValidateResult();
+            return;
+        }
         
-        checkResult.Add(IntegralSolver.SolveBySipmpson(function, upper, lower, SelectedItem.Formula));
-        difficulty.Add(IntegralSolver.Dificulty);
-        IntegralSolver.Dificulty = 0;
-        checkResult.Add(IntegralSolver.SolveByRectangles(function, upper, lower, SelectedItem.Formula));
-        difficulty.Add(IntegralSolver.Dificulty);
-        IntegralSolver.Dificulty = 0;
-        checkResult.Add(IntegralSolver.SolveByTrapezium(function, upper, lower, SelectedItem.Formula));
-        difficulty.Add(IntegralSolver.Dificulty);
-        IntegralSolver.Dificulty = 0;
+        CallSolvers();
+    }
+
+    private void CallSolvers()
+    {
+        Difficulties.Clear();   
+
+        try
+        {
+            Results[0] = IntegralSolver.SolveBySipmpson(_mathExpression, _upperB, _lowerB, SelectedItem.Formula).ToString();
+        }
+        catch (Exception e)
+        {
+            Results[0] = e.Message;
+        }
+        Difficulties.Add(IntegralSolver.GetDifficulty());
+        try
+        {
+            Results[1] = IntegralSolver.SolveByRectangles(_mathExpression, _upperB, _lowerB, SelectedItem.Formula).ToString();
+        }
+        catch (Exception e)
+        {
+            Results[1] = e.Message;
+        }
+        Difficulties.Add(IntegralSolver.GetDifficulty());
+        try
+        {
+            Results[2] = IntegralSolver.SolveByTrapezium(_mathExpression, _upperB, _lowerB, SelectedItem.Formula).ToString();
+        }
+        catch (Exception e)
+        {
+            Results[2] = e.Message;
+        }
+        Difficulties.Add(IntegralSolver.GetDifficulty());
         
+        ValidateResult();
+        // DrawGraphic(function, upperBound, lowerBound);
+    }
+
+    private void ValidateResult()
+    {
         int mathErrors = 0;
-        int boundErrors = 0;
+        int boundsErrors = 0;
         int nans = 0;
         Message = "";
 
-        for (int i = 0; i < 3; ++i)
+        for (int i = 0; i < Results.Count; ++i)
         {
-            if (checkResult[i] == "MathError")
+            if (Results[i] == "Cannot convert function")
             {
                 mathErrors++;
-                checkResult[i] = "-";
+                Results[i] = "-";
             }
-            else if (checkResult[i] == "BoundError")
+            else if (Results[i] == "Cannot convert bounds")
             {
-                checkResult[i] = "-";
-                boundErrors++;
+                boundsErrors++;
+                Results[i] = "-";
             }
-            else if (checkResult[i] == "NaN")
+            else if (Results[i] == "The result is NaN")
             {
-                checkResult[i] = "Не має натуральних розв'язків";
+                Results[i] = "Не має натуральних розв'язків";
                 nans++;
             }
         }
 
         if (mathErrors == 3)
         {
-            Message += "Функцію введено не правильно!";
+            Message = "Функцію введено не правильно!";
             MessageColor = "#eb4034";
         }
         else if (mathErrors > 0)
@@ -200,19 +263,14 @@ public partial class MainViewModel : ObservableObject
             Message += "Деякі методи не змогли зчитати функцію!";
             MessageColor = "#cfa80e";
         }
-        else if (boundErrors == 3)
+        else if (boundsErrors > 0)
         {
-            Message += "Межі інтегралу введено не правильно!";
+            Message = "Межі інтегралу введено не правильно!";
             MessageColor = "#eb4034";
-        }
-        else if (boundErrors > 0)
-        {
-            Message += "Деякі методи не змогли зчитати межі інтегралу!";
-            MessageColor = "#cfa80e";
         }
         else if (nans == 3)
         {
-            Message += "Інтеграл не можливо розв'язати нашими методами!";
+            Message = "Інтеграл не можливо розв'язати нашими методами!";
             MessageColor = "#eb4034";
         }
         else if (nans > 0)
@@ -225,12 +283,9 @@ public partial class MainViewModel : ObservableObject
             Message = "Успішно!";
             MessageColor = "#00bd10";
         }
-
-        Difficulties = difficulty;
-        Results = checkResult;
     }
 
-    string ConvertFunctionMath(string func)
+    private string ConvertFunctionMath(string func)
     {
         foreach (var item in Dictionary.Operations)
         {
@@ -245,7 +300,7 @@ public partial class MainViewModel : ObservableObject
         return func;
     }
     
-    string ConvertFunctionMarkdown(string func)
+    private string ConvertFunctionMarkdown(string func)
     {
         foreach (var item in Dictionary.Markdowns)
         {
@@ -258,5 +313,54 @@ public partial class MainViewModel : ObservableObject
         }
 
         return func;
+    }
+
+    void DrawGraphic(Expression functiion, double upperBound, double lowerBound)
+    {
+        PlotModel1 = new PlotModel { Title = "Графік" };
+        PlotModel1.Background = OxyColors.White;
+        var xAxis = new LinearAxis
+        {
+            Position = AxisPosition.Bottom,
+            Title = "X",
+            Minimum = 0,
+            Maximum = 1
+        };
+
+        var yAxis = new LinearAxis
+        {
+            Position = AxisPosition.Left,
+            Title = "Интеграл f(x)",
+            Minimum = 0,
+            Maximum = 0.5
+        };
+
+        // Добавляем оси в модель
+        PlotModel1.Axes.Add(xAxis);
+        PlotModel1.Axes.Add(yAxis);
+        
+        var lineSeries = new LineSeries
+        {
+            Title = "Интеграл",
+            MarkerType = MarkerType.Circle, // Добавим маркеры для визуализации точек
+            MarkerSize = 3,
+            Color = OxyColors.Blue,
+            MarkerStroke = OxyColors.Red,
+            MarkerFill = OxyColors.Red
+        };
+
+        List<double> xValues = new List<double>();
+        List<double> yValues = new List<double>();
+        int n = 100;
+        double step = (upperBound - lowerBound) / n;
+
+        for (int i = 0; i < n; ++i)
+        {
+            xValues.Add(lowerBound + step * i);
+            yValues.Add(IntegralSolver.SolveBySipmpson(functiion, xValues[i], lowerBound, SelectedItem.Formula));
+            lineSeries.Points.Add(new DataPoint(xValues[i], yValues[i]));
+        }
+        
+        PlotModel1.Series.Add(lineSeries);
     }
 }

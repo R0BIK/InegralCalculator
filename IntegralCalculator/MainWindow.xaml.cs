@@ -21,4 +21,16 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
     }
+
+    private void ShowGraph(object sender, RoutedEventArgs e)
+    {
+        Window graph = new GraphWindow()
+        {
+            ShowInTaskbar = false,
+            Owner = this,
+        };
+        
+        graph.Show();
+
+    }
 }

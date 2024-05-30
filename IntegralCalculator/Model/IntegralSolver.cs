@@ -1,26 +1,20 @@
-using System.Text.RegularExpressions;
 using NCalc;
 
 namespace IntegralCalculator.Model;
 
-public class IntegralSolver
+public static class IntegralSolver
 {
-    public static ulong Dificulty;
-    public static string SolveByRectangles(Expression func, Expression upperB, Expression lowerB, string argument)
+    private static ulong Difficulty;
+
+    public static ulong GetDifficulty()
     {
-        double upperBound;
-        double lowerBound;
-        try
-        {
-            upperBound = Convert.ToDouble(upperB.Evaluate());
-            lowerBound = Convert.ToDouble(lowerB.Evaluate());
-        }
-        catch (Exception e)
-        {
-            return "BoundError";
-        }
-        
-        int precision = 10;
+        ulong temp = Difficulty;
+        Difficulty = 0;
+        return temp;
+    }
+    public static double SolveByRectangles(Expression func, double upperBound, double lowerBound, string argument)
+    {
+        int precision = 1000;
         double temp = lowerBound;
         double result = 0;
         List<double> arguments = new List<double>();
@@ -31,7 +25,7 @@ public class IntegralSolver
         {
             for (int i = 0; i < precision; ++i)
             {
-                Dificulty++;
+                Difficulty++;
                 double arg = temp + h / 2;
                 func.Parameters[argument] = arg;
                 arguments.Add(Convert.ToDouble(func.Evaluate()));
@@ -40,7 +34,7 @@ public class IntegralSolver
             
             for (int i = 0; i < precision; i++)
             {
-                Dificulty++;
+                Difficulty++;
                 result += arguments[i];
             }
 
@@ -48,33 +42,22 @@ public class IntegralSolver
         }
         catch (Exception e)
         {
-            return "MathError";
+            throw new FunctionException("Cannot convert function", e);
         }
 
         if (result is Double.NaN)
-            return "NaN";
+            throw new NanException("The result is NaN");
         
-        return Math.Round(result, 10).ToString();
+        return Math.Round(result, 10);
     }
     
-    public static string SolveBySipmpson(Expression func, Expression upperB, Expression lowerB, string argument)
+    public static double SolveBySipmpson(Expression func, double upperBound, double lowerBound, string argument)
     {
-        double upperBound;
-        double lowerBound;
-        try
-        {
-            upperBound = Convert.ToDouble(upperB.Evaluate());
-            lowerBound = Convert.ToDouble(lowerB.Evaluate());
-        }
-        catch (Exception e)
-        {
-            return "BoundError";
-        }
-        int precision = 10;
+        int precision = 1000;
         double temp = lowerBound;
         double paired = 0;
         double unpaired = 0;
-        double result = 0;
+        double result;
         List<double> arguments = new List<double>();
         
         double h = (upperBound - lowerBound) / precision;
@@ -83,7 +66,7 @@ public class IntegralSolver
         {
             for (int i = 0; i <= precision; ++i)
             {
-                Dificulty++;
+                Difficulty++;
                 func.Parameters[argument] = temp;
                 arguments.Add(Convert.ToDouble(func.Evaluate()));
                 temp += h;
@@ -93,7 +76,7 @@ public class IntegralSolver
         
             for (int i = 1; i < precision; i++)
             {
-                Dificulty++;
+                Difficulty++;
                 if (i % 2 == 0)
                     paired += arguments[i];
                 else
@@ -106,29 +89,18 @@ public class IntegralSolver
         }
         catch (Exception e)
         {
-            return "MathError";
+            throw new FunctionException("Cannot convert function", e);
         }
         
         if (result is Double.NaN)
-            return "NaN";
+            throw new NanException("The result is NaN");
         
-        return Math.Round(result, 10).ToString();
+        return Math.Round(result, 10);
     }
     
-    public static string SolveByTrapezium(Expression func, Expression upperB, Expression lowerB, string argument)
+    public static double SolveByTrapezium(Expression func, double upperBound, double lowerBound, string argument)
     {
-        double upperBound;
-        double lowerBound;
-        try
-        {
-            upperBound = Convert.ToDouble(upperB.Evaluate());
-            lowerBound = Convert.ToDouble(lowerB.Evaluate());
-        }
-        catch (Exception e)
-        {
-            return "BoundError";
-        }
-        int precision = 10;
+        int precision = 1000;
         double temp = lowerBound;
         double result = 0;
         List<double> arguments = new List<double>();
@@ -139,7 +111,7 @@ public class IntegralSolver
         {
             for (int i = 0; i <= precision; ++i)
             { 
-                Dificulty++;
+                Difficulty++;
                 func.Parameters[argument] = temp;
                 arguments.Add(Convert.ToDouble(func.Evaluate()));
                 temp += h;
@@ -149,7 +121,7 @@ public class IntegralSolver
 
             for (int i = 1; i < precision; ++i)
             {
-                Dificulty++;
+                Difficulty++;
                 result += arguments[i];
             }
 
@@ -157,12 +129,12 @@ public class IntegralSolver
         }
         catch (Exception e)
         {
-            return "MathError";
+            throw new FunctionException("Cannot convert function", e);
         }
         
         if (result is Double.NaN)
-            return "NaN";
+            throw new NanException("The result is NaN");
         
-        return Math.Round(result, 10).ToString();
+        return Math.Round(result, 10);
     }
 }
