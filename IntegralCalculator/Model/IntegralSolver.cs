@@ -13,7 +13,6 @@ public static class IntegralSolver
         Difficulty = 0;
         double temp = lowerBound;
         double result = 0;
-        List<double> arguments = new List<double>();
         
         double h = (upperBound - lowerBound) / Precision;
 
@@ -21,17 +20,11 @@ public static class IntegralSolver
         {
             for (int i = 0; i < Precision; ++i)
             {
-                Difficulty++;
                 double arg = temp + h / 2;
                 func.Parameters[argument] = arg;
-                arguments.Add(Convert.ToDouble(func.Evaluate()));
+                result += Convert.ToDouble(func.Evaluate());
                 temp += h;
-            }
-            
-            for (int i = 0; i < Precision; i++)
-            {
                 Difficulty++;
-                result += arguments[i];
             }
 
             result *= h;
@@ -54,31 +47,27 @@ public static class IntegralSolver
         double paired = 0;
         double unpaired = 0;
         double result;
-        List<double> arguments = new List<double>();
         
         double h = (upperBound - lowerBound) / Precision;
         
         try
         {
-            for (int i = 0; i <= Precision; ++i)
-            {
-                Difficulty++;
-                func.Parameters[argument] = temp;
-                arguments.Add(Convert.ToDouble(func.Evaluate()));
-                temp += h;
-            }
+            func.Parameters[argument] = lowerBound;
+            result = Convert.ToDouble(func.Evaluate());
+            func.Parameters[argument] = upperBound;
+            result += Convert.ToDouble(func.Evaluate());
             
-            result = arguments[0] + arguments[Precision];
-        
-            for (int i = 1; i < Precision; i++)
+            for (int i = 1; i < Precision; ++i)
             {
-                Difficulty++;
+                temp += h;
+                func.Parameters[argument] = temp;
                 if (i % 2 == 0)
-                    paired += arguments[i];
+                    paired += Convert.ToDouble(func.Evaluate());
                 else
                 {
-                    unpaired += arguments[i];
+                    unpaired += Convert.ToDouble(func.Evaluate());
                 }
+                Difficulty++;
             }
 
             result = (h / 3) * (result + 2 * paired + 4 * unpaired);
@@ -98,27 +87,23 @@ public static class IntegralSolver
     {
         Difficulty = 0;
         double temp = lowerBound;
-        double result = 0;
-        List<double> arguments = new List<double>();
+        double result;
 
         double h = (upperBound - lowerBound) / Precision;
 
         try
         {
-            for (int i = 0; i <= Precision; ++i)
-            { 
-                Difficulty++;
-                func.Parameters[argument] = temp;
-                arguments.Add(Convert.ToDouble(func.Evaluate()));
-                temp += h;
-            }
+            func.Parameters[argument] = lowerBound;
+            result = Convert.ToDouble(func.Evaluate());
+            func.Parameters[argument] = upperBound;
+            result = (result + Convert.ToDouble(func.Evaluate())) / 2;
             
-            result = (arguments[0] + arguments[Precision]) / 2;
-
             for (int i = 1; i < Precision; ++i)
-            {
+            { 
+                temp += h;
+                func.Parameters[argument] = temp;
+                result += Convert.ToDouble(func.Evaluate());
                 Difficulty++;
-                result += arguments[i];
             }
 
             result *= h;

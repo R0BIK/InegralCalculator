@@ -1,15 +1,12 @@
 using System.Collections.ObjectModel;
-using System.Text.RegularExpressions;
-using System.Windows.Documents;
+using System.IO;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using IntegralCalculator.Model;
 using OxyPlot;
 using OxyPlot.Axes;
-using OxyPlot.Legends;
 using OxyPlot.Series;
-using OxyPlot.Wpf;
 using PCRE;
 using WpfMath.Controls;
 using Expression = NCalc.Expression;
@@ -19,8 +16,8 @@ namespace IntegralCalculator.ViewModel;
 
 public partial class MainViewModel : ObservableObject
 {
-    private double _upperB = 0;
-    private double _lowerB = 0;
+    private double _upperB;
+    private double _lowerB;
     private Expression _mathExpression = new Expression("");
     
     [ObservableProperty]
@@ -59,6 +56,8 @@ public partial class MainViewModel : ObservableObject
     
     public ICommand ResolveCommand { get; set; }
     
+    public ICommand SaveFileCommand { get; set; }
+    
     public MainViewModel()
     {
         Difficulties = new ObservableCollection<ulong>();
@@ -66,6 +65,7 @@ public partial class MainViewModel : ObservableObject
         InitializeGraph();
         InitComboBox();
         ResolveCommand = new RelayCommand(CheckInput);
+        SaveFileCommand = new RelayCommand(SaveFile);
     }
 
     private void InitComboBox()
@@ -139,19 +139,16 @@ public partial class MainViewModel : ObservableObject
         {
             IntegralSolver.Precision = Precision;
             ConvertInputInMath();
-            CallSolvers();
-            ValidateResult();
             string markdownFunction = ConvertFunctionMarkdown(Function);
             string upperB = ConvertFunctionMarkdown(UpperBound);
             string lowerB = ConvertFunctionMarkdown(LowerBound);
             ShowIntegral = @"\int_{" + $"{lowerB}" + @"}^{" + $"{upperB}" + "}{" + $"{markdownFunction}" + @"\, d" + $"{SelectedItem.Formula}" + "}";
-            Console.WriteLine(markdownFunction);
-            Console.WriteLine(@"\int_{" + $"{lowerB}" + @"}^{" + $"{upperB}" + "}{" + $"{markdownFunction}" + @"\, d" + $"{SelectedItem.Formula}" + "}");
         }
     }
 
     private void ConvertInputInMath()
     {
+        Difficulties.Clear();
         string mathFunction = ConvertFunctionMath(Function);
         string upperB = ConvertFunctionMath(UpperBound);
         string lowerB = ConvertFunctionMath(LowerBound);
@@ -190,17 +187,20 @@ public partial class MainViewModel : ObservableObject
         }
         catch (Exception e)
         {
-            Results[0] = "Cannot convert bounds";
-            Results[1] = "Cannot convert bounds";
-            Results[2] = "Cannot convert bounds";
+            for (int i = 0; i < 3; ++i)
+            {
+                Results[i] = "Cannot convert bounds";
+                Difficulties.Add(0);
+            }
             ValidateResult();
+            return;
         }
+        
+        CallSolvers();
     }
 
     private void CallSolvers()
     {
-        Difficulties.Clear();
-
         try
         {
             Results[0] = IntegralSolver.SolveBySipmpson(_mathExpression, _upperB, _lowerB, SelectedItem.Formula).ToString();
@@ -228,6 +228,8 @@ public partial class MainViewModel : ObservableObject
             Results[2] = e.Message;
         }
         Difficulties.Add(IntegralSolver.Difficulty);
+        
+        ValidateResult();
     }
 
     private void ValidateResult()
@@ -294,6 +296,7 @@ public partial class MainViewModel : ObservableObject
         catch (Exception e)
         {
             Message += "Помилка в побудові графіку ";
+            MessageColor = "#cfa80e";
         }
     }
 
@@ -305,7 +308,6 @@ public partial class MainViewModel : ObservableObject
             while (regex.IsMatch(func))
             {
                 func = PcreRegex.Replace(func, item.Key, item.Value);
-                Console.WriteLine(func);
             }
         }
 
@@ -320,7 +322,6 @@ public partial class MainViewModel : ObservableObject
             while (regex.IsMatch(func))
             {
                 func = PcreRegex.Replace(func, item.Key, item.Value);
-                Console.WriteLine(func);
             }
         }
 
@@ -329,14 +330,17 @@ public partial class MainViewModel : ObservableObject
 
     private bool IsNumber(string text)
     {
-        return Char.IsDigit(text[text.Length - 1]);
+        return Char.IsDigit(text[^1]);
     }
     
     private void InitializeGraph()
     {
-        PlotModel1 = new PlotModel { Title = "Графіки інтегралу" };
-        PlotModel1.Background = OxyColors.White;
-        
+        PlotModel1 = new PlotModel
+        {
+            Title = "Графік інтегралу",
+            Background = OxyColors.White
+        };
+
         var xAxis = new LinearAxis
         {
             Position = AxisPosition.Bottom,
@@ -369,25 +373,15 @@ public partial class MainViewModel : ObservableObject
     
     private void DrawGraph()
     {
-        List<OxyColor> colors = [OxyColors.Brown, OxyColors.Coral, OxyColors.DeepSkyBlue];
         InitializeGraph();
 
-        for (int g = 0; g < Results.Count; ++g)
+        foreach (var t in Results)
         {
-            if (IsNumber(Results[g]))
+            if (IsNumber(t))
             {
-                string titleName = "";
-                if (g == 0)
-                    titleName = "Метод Сімпсона";
-                else if (g == 1)
-                    titleName = "Метод прямокутників";
-                else if (g == 2)
-                    titleName = "Метод трапецій";
-                
-                var lineSeries = new LineSeries
+                var lineSeries = new AreaSeries
                 {
-                    Title = titleName,
-                    Color = colors[g],
+                    Color = OxyColors.Coral,
                     MarkerType = MarkerType.None, 
                     MarkerSize = 3,
                     MarkerStroke = OxyColors.Red,
@@ -397,39 +391,76 @@ public partial class MainViewModel : ObservableObject
                 List<double> xValues = new List<double>();
                 List<double> yValues = new List<double>();
                 double step = (_upperB - _lowerB) / GraphPoints;
-                for (int i = 0; i < GraphPoints; ++i)
+                for (int i = 0; i <= GraphPoints; ++i)
                 {
-                    xValues.Add(_lowerB + step * i);
-                    switch (g)
+                    double x = _lowerB + step * i;
+                    if (double.IsPositiveInfinity(x))
                     {
-                        case 0:
-                            yValues.Add(IntegralSolver.SolveBySipmpson(_mathExpression, xValues[i], _lowerB,
-                                SelectedItem.Formula));
-                            break;
-                        case 1:
-                            yValues.Add(IntegralSolver.SolveByRectangles(_mathExpression, xValues[i], _lowerB,
-                                SelectedItem.Formula));
-                            break;
-                        case 2:
-                            yValues.Add(IntegralSolver.SolveByTrapezium(_mathExpression, xValues[i], _lowerB,
-                                SelectedItem.Formula));
-                            break;
-                        default:
-                            yValues.Add(IntegralSolver.SolveBySipmpson(_mathExpression, xValues[i], _lowerB,
-                                SelectedItem.Formula));
-                            break;
+                        x = Int32.MaxValue;
+                        Message += "В графіку змодельована нескінченість ";
+                        MessageColor = "#cfa80e";
                     }
-
+                    else if (double.IsNegativeInfinity(x))
+                    {
+                        x = Int32.MinValue;
+                        Message += "В графіку змодельована нескінченість ";
+                        MessageColor = "#cfa80e";
+                    }
+                    xValues.Add(x);
+                    _mathExpression.Parameters[SelectedItem.Formula] = xValues[i]; 
+                    double y = Convert.ToDouble(_mathExpression.Evaluate());
+                    if (double.IsPositiveInfinity(y))
+                    {
+                        y = Int32.MaxValue;
+                        Message += "В графіку змодельована нескінченість ";
+                        MessageColor = "#cfa80e";
+                    }
+                    else if (double.IsNegativeInfinity(y))
+                    {
+                        y = Int32.MinValue;
+                        Message += "В графіку змодельована нескінченість ";
+                        MessageColor = "#cfa80e";
+                    }
+                    yValues.Add(y);
+                    
                     lineSeries.Points.Add(new DataPoint(xValues[i], yValues[i]));
+                    lineSeries.Points2.Add(new DataPoint(xValues[i], 0));
                 }
-        
+                
                 PlotModel1.Series.Add(lineSeries);
-                PlotModel1.Legends.Add(new Legend() { 
-                    LegendPosition = LegendPosition.RightBottom,
-                    LegendPlacement = LegendPlacement.Outside,
-                    LegendOrientation = LegendOrientation.Horizontal,
-                });
             }
         }
+    }
+
+    private void SaveFile()
+    {
+        try
+        {
+            string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            string filePath = Path.Combine(desktopPath, "Calculator_Log.txt");
+            
+            using (StreamWriter sw = new StreamWriter(filePath))
+            {
+                sw.WriteLine("Input func:\n" + Function);
+                sw.WriteLine("Input upper bound:\n" + UpperBound);
+                sw.WriteLine("Input lower bound:\n" + LowerBound);
+                sw.WriteLine("Parsed Math func:\n" + ConvertFunctionMath(Function));
+                sw.WriteLine("Parsed Math upper bound:\n" + ConvertFunctionMath(UpperBound));
+                sw.WriteLine("Parsed Math lower bound:\n" + ConvertFunctionMath(LowerBound));
+                sw.WriteLine("Parsed Markdown integral:\n" + @"\int_{" + $"{ConvertFunctionMarkdown(LowerBound)}" + @"}^{" + $"{ConvertFunctionMarkdown(UpperBound)}" + "}{" + $"{ConvertFunctionMarkdown(Function)}" + @"\, d" + $"{SelectedItem.Formula}" + "}");
+                sw.WriteLine("Simpson method:\n" + Results[0]);
+                sw.WriteLine("Rectangles method:\n" + Results[1]);
+                sw.WriteLine("Trapezium method:\n" + Results[2]);
+            }
+        }
+        catch (Exception e)
+        {
+            Message = "Не вдалось зберегти файл!";
+            MessageColor = "#eb4034";
+            return;
+        }
+        
+        Message = "Файл успішно збережено на ваш робочий стіл!";
+        MessageColor = "#00bd10";
     }
 }
